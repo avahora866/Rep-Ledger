@@ -98,4 +98,24 @@ void main() {
 
     await tester.runAsync(() => repo.db.close());
   });
+
+  testWidgets('log sheet buttons sit above the system nav bar', (tester) async {
+    const navBar = 48.0;
+    tester.view.padding = const FakeViewPadding(bottom: navBar * 3);
+    tester.view.viewPadding = const FakeViewPadding(bottom: navBar * 3);
+    addTearDown(tester.view.reset);
+
+    final repo = (await tester.runAsync(newTestRepo))!;
+    await tester.pumpWidget(RepLedgerApp(repo: repo));
+    await settle(tester);
+    await tester.tap(find.text('Log'));
+    await settle(tester);
+
+    final screenBottom =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final addBottom = tester.getBottomLeft(find.text('Add')).dy;
+    expect(addBottom, lessThan(screenBottom - navBar));
+
+    await tester.runAsync(() => repo.db.close());
+  });
 }

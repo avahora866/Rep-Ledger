@@ -70,7 +70,10 @@ class _DayViewState extends State<DayView> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 96),
+      padding: EdgeInsets.only(
+        top: 8,
+        bottom: 96 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
       itemCount: groups.length,
       itemBuilder: (context, i) => _GroupCard(
         // Keep expansion state stable as entries are added to the group.

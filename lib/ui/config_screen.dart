@@ -175,7 +175,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
       body: types == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.only(bottom: 96),
+              padding: EdgeInsets.only(
+                bottom: 96 + MediaQuery.viewPaddingOf(context).bottom,
+              ),
               children: [
                 header('Exercises'),
                 if (active.isEmpty)

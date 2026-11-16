@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -214,7 +216,14 @@ class _LogSheetState extends State<_LogSheet> {
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
-        bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
+        // Clear the keyboard when it's open, otherwise the system nav bar
+        // (Android 15+ draws apps edge-to-edge behind it).
+        bottom:
+            math.max(
+              MediaQuery.viewInsetsOf(context).bottom,
+              MediaQuery.viewPaddingOf(context).bottom,
+            ) +
+            16,
       ),
       child: SingleChildScrollView(
         child: Column(
