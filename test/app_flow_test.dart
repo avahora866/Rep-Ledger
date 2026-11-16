@@ -49,6 +49,21 @@ void main() {
     expect(find.text('Set 1'), findsOneWidget);
     expect(find.text('Set 2'), findsOneWidget);
 
+    // Timed exercise: minutes + seconds entry, defaulting to 0:30.
+    await tester.tap(find.text('Log'));
+    await settle(tester);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Hamstring stretch'));
+    await settle(tester);
+    expect(find.widgetWithText(TextField, '0'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '30'), findsOneWidget);
+    await tester.enterText(find.widgetWithText(TextField, '0'), '1');
+    await tester.tap(find.byTooltip('Increase duration'));
+    await settle(tester);
+    expect(find.widgetWithText(TextField, '35'), findsOneWidget);
+    await tester.tap(find.text('Add'));
+    await settle(tester);
+    expect(find.textContaining('1m 35s'), findsOneWidget);
+
     // Flip to yesterday and back.
     await tester.tap(find.byTooltip('Previous day'));
     await settle(tester);

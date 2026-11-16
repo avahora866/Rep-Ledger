@@ -36,7 +36,8 @@ class _LogSheet extends StatefulWidget {
 class _LogSheetState extends State<_LogSheet> {
   final _reps = TextEditingController();
   final _weight = TextEditingController();
-  final _seconds = TextEditingController();
+  final _minutes = TextEditingController();
+  final _secs = TextEditingController();
 
   List<ExerciseType>? _types;
   ExerciseType? _selected;
@@ -58,7 +59,8 @@ class _LogSheetState extends State<_LogSheet> {
   void dispose() {
     _reps.dispose();
     _weight.dispose();
-    _seconds.dispose();
+    _minutes.dispose();
+    _secs.dispose();
     super.dispose();
   }
 
@@ -93,7 +95,26 @@ class _LogSheetState extends State<_LogSheet> {
     _weight.text = e.weightKg == null
         ? ''
         : formatWeight(e.weightKg!).replaceAll(' kg', '');
-    _seconds.text = e.durationSeconds?.toString() ?? '';
+    _setDuration(e.durationSeconds);
+  }
+
+  void _setDuration(int? totalSeconds) {
+    if (totalSeconds == null) {
+      _minutes.text = '';
+      _secs.text = '';
+      return;
+    }
+    _minutes.text = (totalSeconds ~/ 60).toString();
+    _secs.text = (totalSeconds % 60).toString().padLeft(2, '0');
+  }
+
+  /// Minutes + seconds as total seconds; null if both are blank/invalid.
+  /// Seconds over 59 are allowed (e.g. 0:90 = 90s).
+  int? _durationSeconds() {
+    final m = int.tryParse(_minutes.text.trim());
+    final s = int.tryParse(_secs.text.trim());
+    if (m == null && s == null) return null;
+    return (m ?? 0) * 60 + (s ?? 0);
   }
 
   Future<void> _select(ExerciseType t) async {
@@ -111,7 +132,7 @@ class _LogSheetState extends State<_LogSheet> {
       } else {
         _reps.text = t.kind == ExerciseKind.timed ? '' : '10';
         _weight.text = '';
-        _seconds.text = t.kind == ExerciseKind.timed ? '30' : '';
+        _setDuration(t.kind == ExerciseKind.timed ? 30 : null);
       }
     });
   }
@@ -129,7 +150,7 @@ class _LogSheetState extends State<_LogSheet> {
     }
     final reps = int.tryParse(_reps.text.trim());
     final weight = double.tryParse(_weight.text.trim().replaceAll(',', '.'));
-    final seconds = int.tryParse(_seconds.text.trim());
+    final seconds = _durationSeconds();
 
     String? error;
     switch (type.kind) {
@@ -286,11 +307,11 @@ class _LogSheetState extends State<_LogSheet> {
         ];
       case ExerciseKind.timed:
         return [
-          _StepperField(
-            controller: _seconds,
-            label: 'Duration',
-            suffix: 'seconds',
-            step: 5,
+          _DurationField(
+            minutes: _minutes,
+            seconds: _secs,
+            read: _durationSeconds,
+            write: _setDuration,
           ),
         ];
     }
@@ -353,6 +374,71 @@ class _StepperField extends StatelessWidget {
         const SizedBox(width: 8),
         IconButton.filledTonal(
           tooltip: 'Increase $label',
+          onPressed: () => _bump(1),
+          icon: const Icon(Icons.add),
+        ),
+      ],
+    );
+  }
+}
+
+/// Minutes : seconds entry with − / + buttons that step by 5 seconds.
+class _DurationField extends StatelessWidget {
+  const _DurationField({
+    required this.minutes,
+    required this.seconds,
+    required this.read,
+    required this.write,
+  });
+
+  final TextEditingController minutes;
+  final TextEditingController seconds;
+  final int? Function() read;
+  final void Function(int) write;
+
+  static const _step = 5;
+
+  void _bump(int direction) {
+    final next = (read() ?? 0) + _step * direction;
+    write(next < 0 ? 0 : next);
+  }
+
+  Widget _box(TextEditingController c, String label) => Expanded(
+    child: TextField(
+      controller: c,
+      textAlign: TextAlign.center,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      onTap: () => c.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: c.text.length,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        IconButton.filledTonal(
+          tooltip: 'Decrease duration',
+          onPressed: () => _bump(-1),
+          icon: const Icon(Icons.remove),
+        ),
+        const SizedBox(width: 8),
+        _box(minutes, 'Min'),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 6),
+          child: Text(':', style: TextStyle(fontSize: 20)),
+        ),
+        _box(seconds, 'Sec'),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          tooltip: 'Increase duration',
           onPressed: () => _bump(1),
           icon: const Icon(Icons.add),
         ),
