@@ -20,26 +20,25 @@ LogEntry log(int type, int h, int m, {int? reps, double? kg, int? secs}) =>
     );
 
 void main() {
-  test('same type within 30 minutes of the first entry is grouped', () {
+  test('all entries of the same exercise on a day form one group', () {
     final groups = groupLogs([
-      log(1, 9, 0, reps: 10),
+      log(1, 7, 0, reps: 10),
       log(1, 9, 10, reps: 10),
-      log(1, 9, 30, reps: 8), // exactly 30 min: included
-      log(1, 9, 31, reps: 5), // starts a new group
+      log(1, 21, 45, reps: 8), // hours apart: still the same group
     ], types);
-    expect(groups.map((g) => g.entries.length), [3, 1]);
-    expect(groups.first.totalReps, 28);
+    expect(groups.single.entries.length, 3);
+    expect(groups.single.totalReps, 28);
   });
 
-  test('window is anchored to the first entry, not chained', () {
-    // Sets every 20 minutes must not chain into one all-day group.
+  test('groups are ordered by each exercise\'s first entry', () {
     final groups = groupLogs([
+      log(2, 8, 0, reps: 5, kg: 10),
       log(1, 9, 0, reps: 10),
-      log(1, 9, 20, reps: 10),
-      log(1, 9, 40, reps: 10),
-      log(1, 10, 0, reps: 10),
+      log(2, 20, 0, reps: 5, kg: 10),
+      log(3, 7, 0, secs: 30),
     ], types);
-    expect(groups.map((g) => g.entries.length), [2, 2]);
+    expect(groups.map((g) => g.type.name), ['Stretch', 'Curls', 'Push ups']);
+    expect(groups.map((g) => g.entries.length), [1, 2, 1]);
   });
 
   test('interleaved exercises (supersets) group per exercise', () {

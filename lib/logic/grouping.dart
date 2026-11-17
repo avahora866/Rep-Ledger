@@ -1,9 +1,5 @@
 import '../models.dart';
 
-/// Entries of the same exercise whose start falls within this window of the
-/// group's first entry are collapsed together.
-const groupWindow = Duration(minutes: 30);
-
 class LogGroup {
   LogGroup(this.type, this.entries);
 
@@ -33,35 +29,24 @@ class LogGroup {
       entries.map((e) => e.weightKg).whereType<double>();
 }
 
-/// Groups a day's logs: same exercise type, each group spanning at most
-/// [window] from its first entry. Entries don't need to be adjacent, so
-/// supersets (push ups, curls, push ups, curls…) still group per exercise.
-/// Groups are returned in order of their first entry.
+/// Groups a day's logs: one group per exercise type, holding every entry of
+/// that exercise for the day. Groups are ordered by their first entry.
 List<LogGroup> groupLogs(
   List<LogEntry> logs,
-  Map<int, ExerciseType> typesById, {
-  Duration window = groupWindow,
-}) {
+  Map<int, ExerciseType> typesById,
+) {
   final sorted = [...logs]
     ..sort((a, b) {
       final c = a.performedAt.compareTo(b.performedAt);
       return c != 0 ? c : (a.id ?? 0).compareTo(b.id ?? 0);
     });
 
-  final groups = <LogGroup>[];
-  final openGroupByType = <int, LogGroup>{};
-
+  // Map preserves insertion order, i.e. order of each type's first entry.
+  final byType = <int, LogGroup>{};
   for (final log in sorted) {
     final type = typesById[log.exerciseTypeId];
     if (type == null) continue;
-    final open = openGroupByType[log.exerciseTypeId];
-    if (open != null && log.performedAt.difference(open.start) <= window) {
-      open.entries.add(log);
-    } else {
-      final g = LogGroup(type, [log]);
-      groups.add(g);
-      openGroupByType[log.exerciseTypeId] = g;
-    }
+    byType.putIfAbsent(type.id!, () => LogGroup(type, [])).entries.add(log);
   }
-  return groups;
+  return byType.values.toList();
 }

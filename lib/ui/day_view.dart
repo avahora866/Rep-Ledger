@@ -103,8 +103,11 @@ class _GroupCard extends StatelessWidget {
     final now = DateTime.now();
     final isToday =
         now.year == day.year && now.month == day.month && now.day == day.day;
-    // On past days, add just after the last set so it stays in this group.
-    final at = isToday ? now : last.performedAt.add(const Duration(minutes: 1));
+    // On other days, add just after the last set, without spilling past
+    // midnight into the next day.
+    final endOfDay = DateTime(day.year, day.month, day.day, 23, 59, 59);
+    final next = last.performedAt.add(const Duration(minutes: 1));
+    final at = isToday ? now : (next.isAfter(endOfDay) ? endOfDay : next);
     final saved = await repo.saveLog(
       LogEntry(
         exerciseTypeId: last.exerciseTypeId,
