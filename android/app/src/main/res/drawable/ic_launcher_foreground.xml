@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rep Ledger launcher mark: a tally (four reps + the slash). Generated geometry, 108dp adaptive canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M40.25,39.5 A2.5,2.5 0 0 1 45.25,39.5 L45.25,53.17 L40.25,55.53 Z M40.25,65.49 L45.25,63.12 L45.25,68.5 A2.5,2.5 0 0 1 40.25,68.5 Z M47.75,39.5 A2.5,2.5 0 0 1 52.75,39.5 L52.75,49.61 L47.75,51.98 Z M47.75,61.94 L52.75,59.57 L52.75,68.5 A2.5,2.5 0 0 1 47.75,68.5 Z M55.25,39.5 A2.5,2.5 0 0 1 60.25,39.5 L60.25,46.06 L55.25,48.43 Z M55.25,58.39 L60.25,56.02 L60.25,68.5 A2.5,2.5 0 0 1 55.25,68.5 Z M62.75,39.5 A2.5,2.5 0 0 1 67.75,39.5 L67.75,42.51 L62.75,44.88 Z M62.75,54.83 L67.75,52.47 L67.75,68.5 A2.5,2.5 0 0 1 62.75,68.5 Z" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M35,63 L73,45" />
+</vector>
