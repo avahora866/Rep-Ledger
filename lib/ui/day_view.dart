@@ -86,6 +86,16 @@ class _DayViewState extends State<DayView> {
   }
 }
 
+/// Card colour for a group's goal progress; null keeps the default.
+Color? goalColor(BuildContext context, GoalStatus status) {
+  final dark = Theme.of(context).brightness == Brightness.dark;
+  return switch (status) {
+    GoalStatus.reached => dark ? Colors.green.shade900 : Colors.green.shade100,
+    GoalStatus.halfway => dark ? Colors.blue.shade900 : Colors.blue.shade100,
+    GoalStatus.none || GoalStatus.belowHalf => null,
+  };
+}
+
 class _GroupCard extends StatelessWidget {
   const _GroupCard({
     super.key,
@@ -136,6 +146,7 @@ class _GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final type = group.type;
+    final color = goalColor(context, group.goalStatus);
     final addButton = IconButton(
       tooltip: 'Log another set',
       icon: const Icon(Icons.add_circle_outline),
@@ -147,6 +158,7 @@ class _GroupCard extends StatelessWidget {
       return Card(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         clipBehavior: Clip.antiAlias,
+        color: color,
         child: ListTile(
           title: Text(type.name),
           subtitle: Text(
@@ -163,6 +175,7 @@ class _GroupCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       clipBehavior: Clip.antiAlias,
+      color: color,
       child: ExpansionTile(
         key: PageStorageKey('tile-${group.entries.first.id}'),
         shape: const Border(),

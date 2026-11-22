@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../data/backup.dart';
 import '../data/repository.dart';
+import '../logic/format.dart';
 import '../models.dart';
 
 class ConfigScreen extends StatefulWidget {
@@ -213,7 +215,11 @@ class _ConfigScreenState extends State<ConfigScreen> {
             ? TextStyle(color: Theme.of(context).disabledColor)
             : null,
       ),
-      subtitle: Text(t.kind.label),
+      subtitle: Text(
+        t.goal == null
+            ? t.kind.label
+            : '${t.kind.label} · Goal: ${describeGoal(t.kind, t.goal!)}/day',
+      ),
       onTap: () => showExerciseTypeDialog(context, repo: repo, existing: t),
       trailing: PopupMenuButton<String>(
         onSelected: (action) {
@@ -276,9 +282,43 @@ class _ExerciseTypeDialogState extends State<_ExerciseTypeDialog> {
   late ExerciseKind _kind = widget.existing?.kind ?? ExerciseKind.reps;
   String? _error;
 
+  // Goal inputs. Reps-based kinds use [_goalReps]; timed uses min + sec.
+  late final _goalReps = TextEditingController(
+    text: _initialGoal(timed: false),
+  );
+  late final _goalMinutes = TextEditingController(
+    text: _initialGoal(timed: true, minutes: true),
+  );
+  late final _goalSeconds = TextEditingController(
+    text: _initialGoal(timed: true, minutes: false),
+  );
+
+  String _initialGoal({required bool timed, bool minutes = false}) {
+    final e = widget.existing;
+    final goal = e?.goal;
+    if (goal == null || (e!.kind == ExerciseKind.timed) != timed) return '';
+    if (!timed) return '$goal';
+    return minutes ? '${goal ~/ 60}' : '${goal % 60}';
+  }
+
+  /// The goal in the selected kind's unit, or null when blank / zero.
+  int? _goal() {
+    if (_kind == ExerciseKind.timed) {
+      final m = int.tryParse(_goalMinutes.text.trim()) ?? 0;
+      final s = int.tryParse(_goalSeconds.text.trim()) ?? 0;
+      final total = m * 60 + s;
+      return total > 0 ? total : null;
+    }
+    final reps = int.tryParse(_goalReps.text.trim()) ?? 0;
+    return reps > 0 ? reps : null;
+  }
+
   @override
   void dispose() {
     _name.dispose();
+    _goalReps.dispose();
+    _goalMinutes.dispose();
+    _goalSeconds.dispose();
     super.dispose();
   }
 
@@ -289,9 +329,15 @@ class _ExerciseTypeDialogState extends State<_ExerciseTypeDialog> {
       return;
     }
     try {
+      final goal = _goal();
       await widget.repo.saveExerciseType(
-        widget.existing?.copyWith(name: name, kind: _kind) ??
-            ExerciseType(name: name, kind: _kind),
+        widget.existing?.copyWith(
+              name: name,
+              kind: _kind,
+              goal: goal,
+              clearGoal: goal == null,
+            ) ??
+            ExerciseType(name: name, kind: _kind, goal: goal),
       );
       if (mounted) Navigator.of(context).pop();
     } on DuplicateExerciseNameException catch (e) {
@@ -303,53 +349,64 @@ class _ExerciseTypeDialogState extends State<_ExerciseTypeDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.existing == null ? 'New exercise' : 'Edit exercise'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _name,
-            autofocus: widget.existing == null,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: 'Name',
-              hintText: 'e.g. Push ups',
-              errorText: _error,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _name,
+              autofocus: widget.existing == null,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: 'Name',
+                hintText: 'e.g. Push ups',
+                errorText: _error,
+              ),
+              onSubmitted: (_) => _save(),
             ),
-            onSubmitted: (_) => _save(),
-          ),
-          const SizedBox(height: 16),
-          Text('Measured by', style: Theme.of(context).textTheme.labelLarge),
-          const SizedBox(height: 4),
-          RadioGroup<ExerciseKind>(
-            groupValue: _kind,
-            onChanged: (k) {
-              if (!widget.kindLocked && k != null) setState(() => _kind = k);
-            },
-            child: Column(
-              children: [
-                for (final k in ExerciseKind.values)
-                  RadioListTile<ExerciseKind>(
-                    value: k,
-                    enabled: !widget.kindLocked,
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: Text(k.label),
-                    subtitle: Text(switch (k) {
-                      ExerciseKind.reps => 'e.g. 10 push ups',
-                      ExerciseKind.weighted => 'e.g. 10 curls at 10 kg',
-                      ExerciseKind.timed => 'e.g. stretch for 30 seconds',
-                    }),
-                  ),
-              ],
+            const SizedBox(height: 16),
+            Text('Measured by', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 4),
+            RadioGroup<ExerciseKind>(
+              groupValue: _kind,
+              onChanged: (k) {
+                if (!widget.kindLocked && k != null) setState(() => _kind = k);
+              },
+              child: Column(
+                children: [
+                  for (final k in ExerciseKind.values)
+                    RadioListTile<ExerciseKind>(
+                      value: k,
+                      enabled: !widget.kindLocked,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: Text(k.label),
+                      subtitle: Text(switch (k) {
+                        ExerciseKind.reps => 'e.g. 10 push ups',
+                        ExerciseKind.weighted => 'e.g. 10 curls at 10 kg',
+                        ExerciseKind.timed => 'e.g. stretch for 30 seconds',
+                      }),
+                    ),
+                ],
+              ),
             ),
-          ),
-          if (widget.kindLocked)
+            if (widget.kindLocked)
+              Text(
+                'Can\'t change how it\'s measured once it has logs.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            const SizedBox(height: 16),
+            Text('Daily goal', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 4),
+            ..._goalFields(),
+            const SizedBox(height: 4),
             Text(
-              'Can\'t change how it\'s measured once it has logs.',
+              'Optional. Leave blank for no goal.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
-        ],
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -359,5 +416,28 @@ class _ExerciseTypeDialogState extends State<_ExerciseTypeDialog> {
         FilledButton(onPressed: _save, child: const Text('Save')),
       ],
     );
+  }
+
+  List<Widget> _goalFields() {
+    TextField number(TextEditingController c, String label, String suffix) =>
+        TextField(
+          controller: c,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(labelText: label, suffixText: suffix),
+        );
+
+    if (_kind == ExerciseKind.timed) {
+      return [
+        Row(
+          children: [
+            Expanded(child: number(_goalMinutes, 'Goal minutes', 'min')),
+            const SizedBox(width: 12),
+            Expanded(child: number(_goalSeconds, 'Goal seconds', 'sec')),
+          ],
+        ),
+      ];
+    }
+    return [number(_goalReps, 'Goal reps', 'reps')];
   }
 }

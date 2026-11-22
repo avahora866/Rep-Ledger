@@ -1,5 +1,8 @@
 import '../models.dart';
 
+/// How far a day's group is towards its exercise's goal.
+enum GoalStatus { none, belowHalf, halfway, reached }
+
 class LogGroup {
   LogGroup(this.type, this.entries);
 
@@ -20,6 +23,19 @@ class LogGroup {
   /// Sum of reps × weight, for weighted exercises.
   double get volumeKg =>
       entries.fold(0.0, (s, e) => s + (e.reps ?? 0) * (e.weightKg ?? 0));
+
+  /// Progress in the goal's unit: seconds for timed, reps otherwise.
+  int get goalProgress =>
+      type.kind == ExerciseKind.timed ? totalSeconds : totalReps;
+
+  GoalStatus get goalStatus {
+    final goal = type.goal;
+    if (goal == null || goal <= 0) return GoalStatus.none;
+    final p = goalProgress;
+    if (p >= goal) return GoalStatus.reached;
+    if (p * 2 >= goal) return GoalStatus.halfway;
+    return GoalStatus.belowHalf;
+  }
 
   double? get minWeight =>
       _weights.isEmpty ? null : _weights.reduce((a, b) => a < b ? a : b);
