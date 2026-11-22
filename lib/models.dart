@@ -26,28 +26,42 @@ class ExerciseType {
     required this.name,
     required this.kind,
     this.archived = false,
+    this.goal,
   });
 
   final int? id;
   final String name;
   final ExerciseKind kind;
 
+  /// Optional daily goal. Total reps for [ExerciseKind.reps] and
+  /// [ExerciseKind.weighted]; total seconds for [ExerciseKind.timed].
+  /// Null means no goal.
+  final int? goal;
+
   /// Archived types keep their history but are hidden from the add-log picker.
   final bool archived;
 
-  ExerciseType copyWith({String? name, ExerciseKind? kind, bool? archived}) =>
-      ExerciseType(
-        id: id,
-        name: name ?? this.name,
-        kind: kind ?? this.kind,
-        archived: archived ?? this.archived,
-      );
+  /// Pass [clearGoal] to remove the goal (since a null [goal] means "keep").
+  ExerciseType copyWith({
+    String? name,
+    ExerciseKind? kind,
+    bool? archived,
+    int? goal,
+    bool clearGoal = false,
+  }) => ExerciseType(
+    id: id,
+    name: name ?? this.name,
+    kind: kind ?? this.kind,
+    archived: archived ?? this.archived,
+    goal: clearGoal ? null : (goal ?? this.goal),
+  );
 
   factory ExerciseType.fromRow(Map<String, Object?> row) => ExerciseType(
     id: row['id'] as int,
     name: row['name'] as String,
     kind: ExerciseKind.fromDb(row['kind'] as String),
     archived: (row['archived'] as int) == 1,
+    goal: row['goal'] as int?,
   );
 
   Map<String, Object?> toRow() => {
@@ -55,6 +69,7 @@ class ExerciseType {
     'name': name,
     'kind': kind.dbValue,
     'archived': archived ? 1 : 0,
+    'goal': goal,
   };
 
   @override
@@ -63,10 +78,11 @@ class ExerciseType {
       other.id == id &&
       other.name == name &&
       other.kind == kind &&
-      other.archived == archived;
+      other.archived == archived &&
+      other.goal == goal;
 
   @override
-  int get hashCode => Object.hash(id, name, kind, archived);
+  int get hashCode => Object.hash(id, name, kind, archived, goal);
 }
 
 class LogEntry {

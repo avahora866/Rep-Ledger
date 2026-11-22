@@ -81,7 +81,7 @@ void main() {
     expect(find.text('Import'), findsOneWidget);
     await tester.tap(find.text('Exercise'));
     await settle(tester);
-    await tester.enterText(find.byType(TextField), 'Goblet squats');
+    await tester.enterText(find.byType(TextField).first, 'Goblet squats');
     await tester.tap(
       find.descendant(
         of: find.byType(AlertDialog),

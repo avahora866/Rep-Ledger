@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../models.dart';
 
-const _schemaVersion = 1;
+const _schemaVersion = 2;
 
 Future<void> _createSchema(Database db, int version) async {
   await db.execute('''
@@ -11,7 +11,8 @@ Future<void> _createSchema(Database db, int version) async {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE COLLATE NOCASE,
       kind TEXT NOT NULL CHECK (kind IN ('reps', 'weighted', 'timed')),
-      archived INTEGER NOT NULL DEFAULT 0
+      archived INTEGER NOT NULL DEFAULT 0,
+      goal INTEGER
     )
   ''');
   await db.execute('''
@@ -40,6 +41,15 @@ Future<void> _createSchema(Database db, int version) async {
   }
 }
 
+/// Upgrades existing installs in place. Each step only adds; no data is
+/// rewritten or dropped.
+Future<void> _upgradeSchema(Database db, int oldVersion, int newVersion) async {
+  if (oldVersion < 2) {
+    // v2: optional daily goal per exercise. Existing exercises get no goal.
+    await db.execute('ALTER TABLE exercise_types ADD COLUMN goal INTEGER');
+  }
+}
+
 /// Opens the SQLite database. Pass [factory] / [path] to use an alternative
 /// (e.g. in-memory FFI database in tests).
 Future<Database> openLedgerDatabase({
@@ -54,6 +64,7 @@ Future<Database> openLedgerDatabase({
       version: _schemaVersion,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _createSchema,
+      onUpgrade: _upgradeSchema,
     ),
   );
 }
@@ -105,6 +116,7 @@ class LedgerRepository extends ChangeNotifier {
         name: cleaned.name,
         kind: cleaned.kind,
         archived: cleaned.archived,
+        goal: cleaned.goal,
       );
     } else {
       await db.update(

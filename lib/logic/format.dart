@@ -49,3 +49,7 @@ String describeGroupTotal(LogGroup g) {
       return '${formatDuration(g.totalSeconds)} · $sets';
   }
 }
+
+/// A goal in its exercise's unit, e.g. "50 reps" or "1m".
+String describeGoal(ExerciseKind kind, int goal) =>
+    kind == ExerciseKind.timed ? formatDuration(goal) : '$goal reps';

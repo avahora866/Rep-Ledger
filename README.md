@@ -14,6 +14,9 @@ A Flutter app for logging exercises, stored locally in SQLite.
 - **Grouping** — each day, all logs of the same exercise collapse into one
   section showing totals (reps, weight range, volume, or total time).
   Expand to see each set.
+- **Daily goals** — optionally give an exercise a daily goal (e.g. 50 reps or
+  a 1 minute plank) in the config screen. Its section on the day view turns
+  blue at half the goal and green once it's reached.
 - **Edit / delete** — tap an entry to edit it; long-press to delete (with undo).
 - **Config screen** (⚙) — add, rename, archive or delete exercise types.
   Archived exercises keep their history but are hidden from the log picker.

@@ -40,7 +40,12 @@ Future<String> exportJson(LedgerRepository repo) async {
     'exportedAt': DateTime.now().toUtc().toIso8601String(),
     'exerciseTypes': [
       for (final t in types)
-        {'name': t.name, 'kind': t.kind.dbValue, 'archived': t.archived},
+        {
+          'name': t.name,
+          'kind': t.kind.dbValue,
+          'archived': t.archived,
+          if (t.goal != null) 'goal': t.goal,
+        },
     ],
     'logs': [
       for (final l in logs)
@@ -103,6 +108,10 @@ Future<ImportResult> importJson(
       name: name,
       kind: ExerciseKind.fromDb(raw['kind'] as String),
       archived: raw['archived'] == true,
+      goal: switch (raw['goal']) {
+        final num g when g > 0 => g.toInt(),
+        _ => null,
+      },
     );
   }
 
